@@ -4,3 +4,35 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+# ---- Core file operations ----
+walkdir = "2"          # recursive file walking
+ignore = "0.4"         # like walkdir but respects .gitignore
+
+# ---- Config & CLI ----
+serde = { version = "1.0", features = ["derive"] }
+toml = "0.8"           # config file format
+clap = { version = "4", features = ["derive"] }  # CLI args
+
+# ---- Logging ----
+log = "0.4"
+env_logger = "0.11"
+
+# ---- Scheduling ----
+job_scheduler = "0.3"  # cron-like job scheduler
+
+# ---- File system watcher (optional for auto-backups on file changes) ----
+notify = "6"
+
+# ---- Compression (optional) ----
+zip = "0.6"
+flate2 = "1.0"
+tar = "0.4"
+zstd = "0.13"
+
+# ---- Encryption / Hashing (optional) ----
+aes-gcm = "0.10"       # AES-GCM authenticated encryption
+ring = "0.17"          # crypto primitives
+blake3 = "1.5"         # fast hashing
+
+# ---- Async runtime (if you want networking or async jobs) ----
+tokio = { version = "1", features = ["full"] }
