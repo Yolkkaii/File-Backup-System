@@ -1,8 +1,0 @@
-/Users/yolkai/Documents/GitHub/projects/rust-file-backup/Rust-File-Backup-System-Project/main-project/target/debug/deps/objc2_quartz_core-41d3f3c42cbf25e9.d: /Users/yolkai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/objc2-quartz-core-0.2.2/src/lib.rs /Users/yolkai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/objc2-quartz-core-0.2.2/src/generated/mod.rs /Users/yolkai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/objc2-quartz-core-0.2.2/src/generated/CALayer.rs /Users/yolkai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/objc2-quartz-core-0.2.2/src/generated/CATransaction.rs
-
-/Users/yolkai/Documents/GitHub/projects/rust-file-backup/Rust-File-Backup-System-Project/main-project/target/debug/deps/libobjc2_quartz_core-41d3f3c42cbf25e9.rmeta: /Users/yolkai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/objc2-quartz-core-0.2.2/src/lib.rs /Users/yolkai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/objc2-quartz-core-0.2.2/src/generated/mod.rs /Users/yolkai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/objc2-quartz-core-0.2.2/src/generated/CALayer.rs /Users/yolkai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/objc2-quartz-core-0.2.2/src/generated/CATransaction.rs
-
-/Users/yolkai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/objc2-quartz-core-0.2.2/src/lib.rs:
-/Users/yolkai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/objc2-quartz-core-0.2.2/src/generated/mod.rs:
-/Users/yolkai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/objc2-quartz-core-0.2.2/src/generated/CALayer.rs:
-/Users/yolkai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/objc2-quartz-core-0.2.2/src/generated/CATransaction.rs:
