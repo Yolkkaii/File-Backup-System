@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 # ---- GUI ----
 iced = "0.12"
+daemonize = "0.4"
 
 # ---- Core file operations ----
 walkdir = "2"          # recursive file walking

@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf};
 
 mod ui; //Declares ui.rs
 mod backup;
+mod new_gui;
 
 // fn main(){
 //     if let Some(home) = home_dir() {
@@ -55,9 +56,10 @@ mod backup;
 // }
 
 fn main(){
-    if let Some(path) = backup::select_folder() {
-        backup::backup(&path); // &PathBuf coerces to &Path automatically
-    } else {
-        println!("No folder selected");
-    }
+    // if let Some(path) = backup::select_folder() {
+    //     backup::backup(&path); // &PathBuf coerces to &Path automatically
+    // } else {
+    //     println!("No folder selected");
+    // }
+    new_gui::ui();
 }

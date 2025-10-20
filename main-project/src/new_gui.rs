@@ -2,7 +2,7 @@ use iced::widget::{button, column, text, container, scrollable, checkbox, row};
 use iced::{executor, Application, Command, Element, Settings, Theme, Alignment, Length};
 use iced::window::{Id};
 
-pub fn main() -> iced::Result {
+pub fn ui() -> iced::Result {
     Backup::run(Settings::default()) 
 }
 
@@ -65,7 +65,14 @@ impl Application for Backup {
 
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         match message {
-            Message::ToUpload => self.current_page = Page::Upload,
+            Message::ToUpload => {
+                self.current_page = Page::Upload;
+                if let Some(path) = super::backup::select_folder() {
+                    super::backup::backup(&path);
+                } else {
+                    println!("No folder selected");
+                }
+            },
             Message::ToEdit => self.current_page = Page::Edit, 
             Message::ToView => self.current_page = Page::View,
             Message::ToMenu => self.current_page = Page::Menu, 
@@ -83,6 +90,9 @@ impl Application for Backup {
             Message::DeleteConfirmed => {
                 let files_to_delete_count = self.files.iter().filter(|(_, is_checked)| *is_checked).count();
                 println!("Deleting {} selected files.", files_to_delete_count);
+
+                //backup.rs
+                //super::backup::delete_selected(files_to_delete)
                 
                 self.files.retain(|(_, is_checked)| !*is_checked);
             }

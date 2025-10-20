@@ -3,7 +3,7 @@ use rfd::FileDialog;
 use walkdir::WalkDir;
 use dirs_next::home_dir;
 use std::fs;
-use std::fs::File;
+use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -19,6 +19,34 @@ pub struct FileInfo {
     pub auto_backup: bool,
     pub backup_time: Duration,
     pub backup_frequency: String,
+}
+
+pub fn save_info(info: Vec<FileInfo>) -> std::io::Result<()> {
+    let path = "backup_metadata.json";
+
+    let mut existing_info: Vec<FileInfo> = if Path::new(path).exists() {
+        let mut file = File::open(path)?;
+        let mut contents = String::new();
+        file.read_to_string(&mut contents)?;
+        if !contents.is_empty() {
+            serde_json::from_str(&contents).unwrap_or_default()
+        } else {
+            Vec::new()
+        }
+    } else {
+        Vec::new()
+    };
+
+    for new_entry in info {
+        if !existing_info.iter().any(|f| f.original_path == new_entry.original_path) {
+            existing_info.push(new_entry);
+        }
+    }
+
+    let mut file = File::create(path)?;
+    serde_json::to_writer_pretty(&mut file, &existing_info)?;
+
+    Ok(())
 }
 
 pub fn select_folder() -> Option<PathBuf> {
@@ -60,7 +88,7 @@ pub fn backup(selected_folder: &Path) -> std::io::Result<()> {
     let backup_folder = home.join("Backup");
     fs::create_dir_all(&backup_folder)?;
 
-    // Load existing metadata if available else create new vector
+    // Load existing metadata if available
     let mut file_info: Vec<FileInfo> = if let Ok(mut f) = File::open("backup_metadata.json") {
         let mut contents = String::new();
         f.read_to_string(&mut contents)?;
@@ -68,6 +96,8 @@ pub fn backup(selected_folder: &Path) -> std::io::Result<()> {
     } else {
         Vec::new()
     };
+
+    let mut new_entries: Vec<FileInfo> = Vec::new();
 
     // Iterate over all files and folders in the selected folder
     for entry in WalkDir::new(selected_folder).into_iter().filter_map(|e| e.ok()) {
@@ -88,26 +118,30 @@ pub fn backup(selected_folder: &Path) -> std::io::Result<()> {
             println!("Copying File: {}", dest_path.display());
 
             // Get file type (extension)
-            let file_type = path.extension()
+            let file_type = path
+                .extension()
                 .map(|e| e.to_string_lossy().to_string())
-                .unwrap_or_else(|| "unknown".to_string()); //displays "unknown" if type if not able to be unwrapped
+                .unwrap_or_else(|| "unknown".to_string());
 
             // Create FileInfo struct
             let info = FileInfo {
                 original_path: path.to_path_buf(),
                 backup_path: dest_path.to_path_buf(),
                 file_type,
-                ..Default::default() // auto_backup, backup_time, etc. set later
+                ..Default::default() // Set all other info to default
             };
 
-            // Save to vector
-            file_info.push(info);
+            // Only add new entries
+            if !file_info.iter().any(|f| f.original_path == info.original_path) {
+                new_entries.push(info);
+            }
         }
     }
 
-    // Save updated metadata to JSON
-    let mut file = File::create("backup_metadata.json")?;
-    serde_json::to_writer_pretty(&mut file, &file_info)?;
+    // Merge new entries into existing metadata using save_info
+    if !new_entries.is_empty() {
+        save_info(new_entries)?;
+    }
 
     Ok(())
 }
