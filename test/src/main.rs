@@ -5,8 +5,10 @@ use dirs_next::home_dir;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+mod ui; //Declares ui.rs
 mod backup;
 mod new_gui;
+mod daemon;
 
 // fn main(){
 //     if let Some(home) = home_dir() {
@@ -60,5 +62,5 @@ fn main(){
     // } else {
     //     println!("No folder selected");
     // }
-    new_gui::ui();
+    new_gui::ui().unwrap();
 }
