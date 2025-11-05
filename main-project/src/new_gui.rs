@@ -1,6 +1,7 @@
 use iced::widget::{button, column, text, container, scrollable, checkbox, row};
 use iced::{executor, Application, Command, Element, Settings, Theme, Alignment, Length};
 use iced::window::{Id};
+use std::sync::{Arc, Mutex};
 
 pub fn ui() -> iced::Result {
     Backup::run(Settings::default()) 
@@ -18,7 +19,8 @@ enum Page {
 #[derive(Default)]
 struct Backup {
     current_page: Page, 
-    files: Vec<(String, bool)>, 
+    files: Vec<(String, bool)>,
+    metadata: Option<Arc<Mutex<super::backup::BackupMetadata>>>, // Add this field
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -30,7 +32,8 @@ enum Message {
     Exit, 
     ToggleFileCheck(usize), 
     FilterOptions,         
-    DeleteConfirmed,       
+    DeleteConfirmed,
+    UpdateNow, // Add this new message
 }
 
 impl Application for Backup { 
@@ -50,10 +53,16 @@ impl Application for Backup {
             (String::from("Important_Database_Dump.sql"), false),
         ];
         
+        // Load metadata if available
+        let metadata = super::backup::BackupMetadata::load_from_file()
+            .ok()
+            .map(|m| Arc::new(Mutex::new(m)));
+        
         (
             Self { 
                 current_page: Page::Menu, 
-                files: initial_files, 
+                files: initial_files,
+                metadata,
             }, 
             Command::none()
         )
@@ -68,9 +77,30 @@ impl Application for Backup {
             Message::ToUpload => {
                 self.current_page = Page::Upload;
                 if let Some(path) = super::backup::select_folder() {
-                    super::backup::backup(&path);
+                    if let Err(e) = super::backup::backup(&path) {
+                        println!("Backup error: {}", e);
+                    } else {
+                        // Reload metadata after backup
+                        if let Ok(meta) = super::backup::BackupMetadata::load_from_file() {
+                            self.metadata = Some(Arc::new(Mutex::new(meta)));
+                        }
+                    }
                 } else {
                     println!("No folder selected");
+                }
+            },
+            Message::UpdateNow => {
+                if let Some(metadata_arc) = &self.metadata {
+                    match super::backup::backup_now(Arc::clone(metadata_arc)) {
+                        Ok(count) => {
+                            println!("Successfully backed up {} file(s)", count);
+                        }
+                        Err(e) => {
+                            println!("Update now error: {}", e);
+                        }
+                    }
+                } else {
+                    println!("No metadata available. Please perform an initial backup first.");
                 }
             },
             Message::ToEdit => self.current_page = Page::Edit, 
@@ -115,6 +145,10 @@ impl Backup {
         let upload_button = button("Upload")
             .width(Length::Fill) 
             .on_press(Message::ToUpload);
+        
+        let update_now_button = button("Update Now")
+            .width(Length::Fill)
+            .on_press(Message::UpdateNow);
             
         let edit_button = button("Edit")
             .width(Length::Fill)
@@ -131,6 +165,7 @@ impl Backup {
         let content = column![
             text("FASS Backup").size(32).font(iced::Font::DEFAULT),
             upload_button,
+            update_now_button, // Add the new button here
             edit_button,
             view_button,
             exit_button,
