@@ -6,7 +6,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 mod backup;
-mod new_gui;
+mod iced;
 mod daemon;
 
 // fn main(){
@@ -61,5 +61,5 @@ fn main(){
     // } else {
     //     println!("No folder selected");
     // }
-    new_gui::ui();
+    iced::ui();
 }
