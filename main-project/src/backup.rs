@@ -6,9 +6,8 @@ use std::fs;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
-use std::time::Duration;
 use sha2::{Sha256, Digest};
-use std::{sync::{Arc, Mutex}};
+use std::sync::{Arc, Mutex};
 use chrono::Local;
 use std::collections::HashMap;
 
@@ -29,11 +28,6 @@ pub struct FileInfo {
     pub original_path: PathBuf,
     pub backup_path: PathBuf,
     pub file_type: String,
-    pub auto_backup: bool,
-    #[serde(default)]
-    pub backup_time: Duration,
-    #[serde(default)]
-    pub backup_frequency: String,
     #[serde(default)]
     pub hash: String,
 }
@@ -44,9 +38,6 @@ impl Default for FileInfo {
             original_path: PathBuf::new(),
             backup_path: PathBuf::new(),
             file_type: String::new(),
-            auto_backup: false,
-            backup_time: Duration::from_secs(0),
-            backup_frequency: String::new(),
             hash: String::new(),
         }
     }
@@ -94,10 +85,19 @@ impl BackupMetadata {
     }
 }
 
-fn save_info(info: &Vec<FileInfo>) -> std::io::Result<()> {
-    let path = "backup_metadata.json";
-    let file = File::create(path)?;
-    serde_json::to_writer_pretty(&file, info)?;
+pub fn update_file_info(files: Vec<FileInfo>) -> std::io::Result<()> {
+    let mut metadata = BackupMetadata::default();
+    for file in files {
+        metadata.files.insert(file.original_path.clone(), file);
+    }
+    metadata.save_to_file()
+}
+
+pub fn delete_selected(selected_file: PathBuf) -> std::io::Result<()> {
+    if selected_file.exists() {
+        fs::remove_file(&selected_file)?;
+        println!("Deleted: {}", selected_file.display());
+    }
     Ok(())
 }
 
@@ -117,17 +117,8 @@ pub fn backup(selected_folder: &Path) -> std::io::Result<()> {
     let backup_folder = home.join("Backup");
     fs::create_dir_all(&backup_folder)?;
 
-    // Load metadata if it exists
-    let mut file_info: Vec<FileInfo> = if let Ok(mut f) = File::open("backup_metadata.json") {
-        let mut contents = String::new();
-        f.read_to_string(&mut contents)?;
-        serde_json::from_str(&contents).unwrap_or_default()
-    } else {
-        Vec::new()
-    };
-
-    // Create a working copy so we can update or add entries
-    let mut updated_info = file_info.clone();
+    // Load existing metadata
+    let mut metadata = BackupMetadata::load_from_file().unwrap_or_default();
 
     for entry in WalkDir::new(selected_folder).into_iter().filter_map(|e| e.ok()) {
         let path = entry.path();
@@ -145,7 +136,7 @@ pub fn backup(selected_folder: &Path) -> std::io::Result<()> {
             }
 
             let new_hash = calculate_hash(path);
-            let existing = file_info.iter().find(|f| f.original_path == path);
+            let existing = metadata.files.get(&path.to_path_buf());
 
             let should_copy = match existing {
                 Some(old) if !old.hash.is_empty() => Some(&old.hash) != new_hash.as_ref(),
@@ -165,27 +156,20 @@ pub fn backup(selected_folder: &Path) -> std::io::Result<()> {
                 .unwrap_or_else(|| "unknown".to_string());
 
             // Update or insert metadata
-            if let Some(existing_file) = updated_info.iter_mut().find(|f| f.original_path == path) {
-                if let Some(hash) = new_hash.clone() {
-                    existing_file.hash = hash;
-                }
-                existing_file.backup_path = dest_path.clone();
-            } else {
-                if let Some(hash) = new_hash {
-                    updated_info.push(FileInfo {
-                        original_path: path.to_path_buf(),
-                        backup_path: dest_path,
-                        file_type,
-                        hash,
-                        ..Default::default()
-                    });
-                }
+            if let Some(hash) = new_hash {
+                let file_info = FileInfo {
+                    original_path: path.to_path_buf(),
+                    backup_path: dest_path,
+                    file_type,
+                    hash,
+                };
+                metadata.files.insert(path.to_path_buf(), file_info);
             }
         }
     }
 
-    // Save metadata once, at the end
-    save_info(&updated_info)?;
+    // Save metadata
+    metadata.save_to_file()?;
     println!("Metadata updated successfully.");
 
     Ok(())
@@ -245,54 +229,4 @@ pub fn backup_now(metadata_arc: Arc<Mutex<BackupMetadata>>) -> Result<usize, Str
 
     println!("Backup complete: {} file(s) backed up", backed_up_count);
     Ok(backed_up_count)
-}
-
-pub fn auto_backup(metadata_arc: Arc<Mutex<BackupMetadata>>, interval_minutes: u64) {
-    std::thread::spawn(move || {
-        loop {
-            let mut need_save = false;
-
-            {
-                let mut metadata = metadata_arc.lock().unwrap();
-                println!("[{}] Running auto-backup check...", Local::now().format("%Y-%m-%d %H:%M:%S"));
-
-                for info in metadata.files.values_mut() {
-                    if !info.original_path.exists() {
-                        println!("Original file missing: {}", info.original_path.display());
-                        continue;
-                    }
-
-                    match calculate_hash(&info.original_path) {
-                        Some(current_hash) => {
-                            if current_hash != info.hash {
-                                if let Err(e) = fs::copy(&info.original_path, &info.backup_path) {
-                                    println!("Auto-backup error ({}): {}", info.original_path.display(), e);
-                                } else {
-                                    println!(
-                                        "[{}] File changed — backed up {}",
-                                        Local::now().format("%Y-%m-%d %H:%M:%S"),
-                                        info.original_path.display()
-                                    );
-                                    info.hash = current_hash;
-                                    need_save = true;
-                                }
-                            } else {
-                                println!("No changes in {}", info.original_path.display());
-                            }
-                        }
-                        None => println!("Hash check failed for {}", info.original_path.display()),
-                    }
-                }
-            }
-
-            if need_save {
-                let metadata = metadata_arc.lock().unwrap();
-                if let Err(e) = metadata.save_to_file() {
-                    println!("Failed to save updated metadata: {}", e);
-                }
-            }
-
-            std::thread::sleep(Duration::from_secs(interval_minutes * 60));
-        }
-    });
 }
