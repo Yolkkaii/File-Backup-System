@@ -52,6 +52,7 @@ pub struct BackupMetadata {
 pub struct BackupSettings {
     pub auto_backup_enabled: bool,
     pub interval_minutes: u64,
+    pub dark_mode: bool,
 }
 
 impl Default for BackupSettings {
@@ -59,6 +60,7 @@ impl Default for BackupSettings {
         Self {
             auto_backup_enabled: false,
             interval_minutes: 60, // Default: 1 hour
+            dark_mode: false,
         }
     }
 }

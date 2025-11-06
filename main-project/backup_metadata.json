@@ -1,0 +1,94 @@
+{
+  "files": {
+    "/Users/yolkai/Desktop/IMG_4212.png": {
+      "original_path": "/Users/yolkai/Desktop/IMG_4212.png",
+      "backup_path": "/Users/yolkai/Backup/IMG_4212.png",
+      "file_type": "png",
+      "hash": "8c105dbace9959f521773ff870f2f86acbd24c824aa6a9a45a43bbfa818685e2"
+    },
+    "/Users/yolkai/Documents/GitHub/projects/rust-file-backup/Rust-File-Backup-System-Project/Documents/Rust Project Progress Report (21:10:2025).pdf": {
+      "original_path": "/Users/yolkai/Documents/GitHub/projects/rust-file-backup/Rust-File-Backup-System-Project/Documents/Rust Project Progress Report (21:10:2025).pdf",
+      "backup_path": "/Users/yolkai/Backup/Rust Project Progress Report (21:10:2025).pdf",
+      "file_type": "pdf",
+      "hash": "497d6238e63f803ceff5ea7bf6e0bb5603007fd09f8435752a08347569dcae1f"
+    },
+    "/Users/yolkai/Documents/Content Creation/Content/Short form/.DS_Store": {
+      "original_path": "/Users/yolkai/Documents/Content Creation/Content/Short form/.DS_Store",
+      "backup_path": "/Users/yolkai/Backup/Short form/.DS_Store",
+      "file_type": "unknown",
+      "hash": "d65165279105ca6773180500688df4bdc69a2c7b771752f0a46ef120b7fd8ec3"
+    },
+    "/Users/yolkai/Desktop/.DS_Store": {
+      "original_path": "/Users/yolkai/Desktop/.DS_Store",
+      "backup_path": "/Users/yolkai/Backup/.DS_Store",
+      "file_type": "unknown",
+      "hash": "52d7f193f8550f17ce22e554093638931f42654f6ccac310552a78c179cdbcc5"
+    },
+    "/Users/yolkai/Documents/Content Creation/Content/Short form/Top 5 Spells.mp4": {
+      "original_path": "/Users/yolkai/Documents/Content Creation/Content/Short form/Top 5 Spells.mp4",
+      "backup_path": "/Users/yolkai/Backup/Short form/Top 5 Spells.mp4",
+      "file_type": "mp4",
+      "hash": "777600f8b8b29e35108dc521613bca34b1963de77d5db017299f645e20fb0033"
+    },
+    "/Users/yolkai/Documents/Content Creation/Content/.DS_Store": {
+      "original_path": "/Users/yolkai/Documents/Content Creation/Content/.DS_Store",
+      "backup_path": "/Users/yolkai/Backup/.DS_Store",
+      "file_type": "unknown",
+      "hash": "aa2cb1bbfa10d4c25e174d8241668389cad3a8fecef37c62b2b2128ad31e831b"
+    },
+    "/Users/yolkai/Desktop/.localized": {
+      "original_path": "/Users/yolkai/Desktop/.localized",
+      "backup_path": "/Users/yolkai/Backup/.localized",
+      "file_type": "unknown",
+      "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "/Users/yolkai/Downloads/The Goons/.DS_Store": {
+      "original_path": "/Users/yolkai/Downloads/The Goons/.DS_Store",
+      "backup_path": "/Users/yolkai/Backup/.DS_Store",
+      "file_type": "unknown",
+      "hash": "4f9c86788caf58c21c9834fa867bae662538adef6fb9f08e03545fe6cc1457a3"
+    },
+    "/Users/yolkai/Downloads/5_6195092997055453206.pdf": {
+      "original_path": "/Users/yolkai/Downloads/5_6195092997055453206.pdf",
+      "backup_path": "/Users/yolkai/Backup/5_6195092997055453206.pdf",
+      "file_type": "pdf",
+      "hash": "0593f89c5f77f9a7d3d9d34e8c481ef3632dadcdbab165049c2a0aa58d9ecad2"
+    },
+    "/Users/yolkai/Downloads/1726780b71683582.png": {
+      "original_path": "/Users/yolkai/Downloads/1726780b71683582.png",
+      "backup_path": "/Users/yolkai/Backup/1726780b71683582.png",
+      "file_type": "png",
+      "hash": ""
+    },
+    "/Users/yolkai/Downloads/5_6199227010452036071.txt": {
+      "original_path": "/Users/yolkai/Downloads/5_6199227010452036071.txt",
+      "backup_path": "/Users/yolkai/Backup/5_6199227010452036071.txt",
+      "file_type": "txt",
+      "hash": "169fb73c3ef92cb4eb2a34bd3a3e95e22a193f53a61ec4069093c687bc2385f5"
+    },
+    "/Users/yolkai/Documents/Content Creation/Content/Short form/Top 5 Wizards.mp4": {
+      "original_path": "/Users/yolkai/Documents/Content Creation/Content/Short form/Top 5 Wizards.mp4",
+      "backup_path": "/Users/yolkai/Backup/Short form/Top 5 Wizards.mp4",
+      "file_type": "mp4",
+      "hash": "b9006b4c7e60a8679a2910dd36e7f7567781c12d8ffb9145b6215c286400bd80"
+    },
+    "/Users/yolkai/Downloads/.localized": {
+      "original_path": "/Users/yolkai/Downloads/.localized",
+      "backup_path": "/Users/yolkai/Backup/.localized",
+      "file_type": "unknown",
+      "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "/Users/yolkai/Downloads/.DS_Store": {
+      "original_path": "/Users/yolkai/Downloads/.DS_Store",
+      "backup_path": "/Users/yolkai/Backup/.DS_Store",
+      "file_type": "unknown",
+      "hash": "356332f7fa75310e01e9c85e5bbe0986e6952b98f11243c9ec1a3848674b54b6"
+    },
+    "/Users/yolkai/Documents/GitHub/projects/rust-file-backup/Rust-File-Backup-System-Project/Documents/Rust Project Progress Report (21:10:2025).docx": {
+      "original_path": "/Users/yolkai/Documents/GitHub/projects/rust-file-backup/Rust-File-Backup-System-Project/Documents/Rust Project Progress Report (21:10:2025).docx",
+      "backup_path": "/Users/yolkai/Backup/Rust Project Progress Report (21:10:2025).docx",
+      "file_type": "docx",
+      "hash": "ce36f6e1abee7db6a856b27beba8211f9c3d486d8fb3534f3e007c7d6b6684d3"
+    }
+  }
+}

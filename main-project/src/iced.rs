@@ -30,6 +30,7 @@ struct Backup {
     settings: super::backup::BackupSettings,
     interval_input: String,
     daemon_status: String,
+    dark_mode_enabled: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -53,6 +54,7 @@ enum Message {
     StopDaemon,
     RestartDaemon,
     RefreshDaemonStatus,
+    ToggleDarkMode(bool),
 }
 
 impl Application for Backup {
@@ -60,6 +62,14 @@ impl Application for Backup {
     type Message = Message;
     type Theme = Theme;
     type Flags = ();
+
+    fn theme(&self) -> Theme {
+        if self.dark_mode_enabled {
+            Theme::Dark
+        } else {
+            Theme::Light
+        }
+    }
 
     fn new(_flags: Self::Flags) -> (Self, Command<Self::Message>) {
         let metadata = super::backup::BackupMetadata::load_from_file()
@@ -77,6 +87,7 @@ impl Application for Backup {
 
         let daemon_status = super::daemon::daemon_status();
 
+        let dark_mode_enabled = settings.dark_mode;
         (
             Self {
                 current_page: Page::Menu,
@@ -86,6 +97,7 @@ impl Application for Backup {
                 interval_input: settings.interval_minutes.to_string(),
                 settings,
                 daemon_status,
+                dark_mode_enabled, // ← Initialize it
             },
             Command::none(),
         )
@@ -268,6 +280,13 @@ impl Application for Backup {
             Message::RefreshDaemonStatus => {
                 self.daemon_status = super::daemon::daemon_status();
             }
+            Message::ToggleDarkMode(enabled) => {
+                self.dark_mode_enabled = enabled;
+                self.settings.dark_mode = enabled;
+                if let Err(e) = self.settings.save_to_file() {
+                    eprintln!("Failed to save dark mode setting: {}", e);
+                }
+            }
         }
         Command::none()
     }
@@ -325,6 +344,17 @@ impl Backup {
         .spacing(10)
         .align_items(Alignment::Center);
 
+        let dark_mode_toggle = row![
+            text("Enable Dark Mode:").size(16),
+            toggler(
+                String::new(),
+                self.dark_mode_enabled,
+                Message::ToggleDarkMode
+            ),
+        ]
+        .spacing(10)
+        .align_items(Alignment::Center);
+
         let interval_input = row![
             text("Backup Interval (minutes):").size(16),
             text_input("60", &self.interval_input)
@@ -366,6 +396,7 @@ impl Backup {
         let content = column![
             title,
             auto_backup_toggle,
+            dark_mode_toggle,
             interval_input,
             save_button,
             container(text("")).height(Length::Fixed(20.0)),
