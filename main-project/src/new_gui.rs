@@ -124,7 +124,22 @@ impl Application for Backup {
                 self.current_page = Page::Menu;
                 self.selected_file = None;
             }
-            Message::Exit => return iced::window::close(Id::MAIN),
+            Message::Exit => {
+                let daemon_status_clone = Arc::new(Mutex::new(self.daemon_status.clone()));
+                let daemon_status_ref = Arc::clone(&daemon_status_clone);
+
+                std::thread::spawn(move || {
+                    match super::daemon::start_daemon() {
+                        Ok(_) => {
+                            println!("Daemon started successfully");
+                            let mut status = daemon_status_ref.lock().unwrap();
+                            *status = super::daemon::daemon_status();
+                        }
+                        Err(e) => eprintln!("Failed to start daemon: {}", e),
+                    }
+                });
+                return iced::window::close(Id::MAIN)
+            },
             Message::SelectFile(path) => {
                 if self.selected_file.as_ref().map(|p| p == &path).unwrap_or(false) {
                     self.selected_file = None;
