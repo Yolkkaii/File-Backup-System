@@ -48,6 +48,41 @@ pub struct BackupMetadata {
     pub files: HashMap<PathBuf, FileInfo>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BackupSettings {
+    pub auto_backup_enabled: bool,
+    pub interval_minutes: u64,
+}
+
+impl Default for BackupSettings {
+    fn default() -> Self {
+        Self {
+            auto_backup_enabled: false,
+            interval_minutes: 60, // Default: 1 hour
+        }
+    }
+}
+
+impl BackupSettings {
+    pub fn load_from_file() -> std::io::Result<Self> {
+        let path = "backup_settings.json";
+        if let Ok(mut f) = File::open(path) {
+            let mut contents = String::new();
+            f.read_to_string(&mut contents)?;
+            Ok(serde_json::from_str(&contents).unwrap_or_default())
+        } else {
+            Ok(BackupSettings::default())
+        }
+    }
+
+    pub fn save_to_file(&self) -> std::io::Result<()> {
+        let path = "backup_settings.json";
+        let file = File::create(path)?;
+        serde_json::to_writer_pretty(&file, self)?;
+        Ok(())
+    }
+}
+
 impl BackupMetadata {
     pub fn load_from_file() -> std::io::Result<Self> {
         let path = "backup_metadata.json";
@@ -229,4 +264,23 @@ pub fn backup_now(metadata_arc: Arc<Mutex<BackupMetadata>>) -> Result<usize, Str
 
     println!("Backup complete: {} file(s) backed up", backed_up_count);
     Ok(backed_up_count)
+}
+
+// This function is called by the daemon
+pub fn auto_backup() -> std::io::Result<()> {
+    let metadata = BackupMetadata::load_from_file()?;
+    let metadata_arc = Arc::new(Mutex::new(metadata));
+    
+    match backup_now(metadata_arc) {
+        Ok(count) => {
+            println!("[{}] Auto-backup completed: {} files backed up", 
+                Local::now().format("%Y-%m-%d %H:%M:%S"), count);
+            Ok(())
+        }
+        Err(e) => {
+            eprintln!("[{}] Auto-backup failed: {}", 
+                Local::now().format("%Y-%m-%d %H:%M:%S"), e);
+            Err(std::io::Error::new(std::io::ErrorKind::Other, e))
+        }
+    }
 }

@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf};
 
 mod backup;
 mod new_gui;
+mod daemon;
 
 // fn main(){
 //     if let Some(home) = home_dir() {
