@@ -46,7 +46,6 @@ enum Message {
     OpenFolder,
     Restore,
     RefreshFiles,
-    // Settings messages
     ToggleAutoBackup(bool),
     IntervalInputChanged(String),
     SaveSettings,
@@ -97,7 +96,7 @@ impl Application for Backup {
                 interval_input: settings.interval_minutes.to_string(),
                 settings,
                 daemon_status,
-                dark_mode_enabled, // ← Initialize it
+                dark_mode_enabled,
             },
             Command::none(),
         )
@@ -137,6 +136,7 @@ impl Application for Backup {
                 self.selected_file = None;
             }
             Message::Exit => {
+                //try to start daemon in background when exiting the UI
                 let daemon_status_clone = Arc::new(Mutex::new(self.daemon_status.clone()));
                 let daemon_status_ref = Arc::clone(&daemon_status_clone);
 
@@ -153,6 +153,7 @@ impl Application for Backup {
                 return iced::window::close(Id::MAIN)
             },
             Message::SelectFile(path) => {
+                //toggle selection - clicking same file deselcts it
                 if self.selected_file.as_ref().map(|p| p == &path).unwrap_or(false) {
                     self.selected_file = None;
                 } else {
@@ -185,6 +186,7 @@ impl Application for Backup {
                         let source = &file.backup_path;
                         let destination = &file.original_path;
                         
+                        // make sure parent directory exists
                         if let Some(parent) = destination.parent() {
                             if let Err(e) = std::fs::create_dir_all(parent) {
                                 eprintln!("Failed to create directory {}: {}", parent.display(), e);
@@ -192,6 +194,7 @@ impl Application for Backup {
                             }
                         }
 
+                        //dont overwrite existing files
                         if destination.exists() {
                             eprintln!("Skipped restore: destination already exists ({})", destination.display());
                         } else {
@@ -229,7 +232,7 @@ impl Application for Backup {
                             eprintln!("Failed to save settings: {}", e);
                         } else {
                             println!("Settings saved successfully");
-                            // Restart daemon if it's running to apply new settings
+                            // restart daemon to apply new interval if its running
                             if super::daemon::is_daemon_running() {
                                 let _ = super::daemon::restart_daemon();
                             }
@@ -245,6 +248,7 @@ impl Application for Backup {
                 let daemon_status_clone = Arc::new(Mutex::new(self.daemon_status.clone()));
                 let daemon_status_ref = Arc::clone(&daemon_status_clone);
 
+                // start in seperate thread so UI doesn't freeze
                 std::thread::spawn(move || {
                     match super::daemon::start_daemon() {
                         Ok(_) => {
@@ -256,7 +260,6 @@ impl Application for Backup {
                     }
                 });
 
-                // Immediately update the UI status (optional)
                 self.daemon_status = super::daemon::daemon_status();
             }
             Message::StopDaemon => {
@@ -422,7 +425,7 @@ impl Backup {
     fn view_edit(&self) -> Element<Message> {
         let title = text("Manage Backup Files").size(36);
 
-        // Sort files alphabetically by file name before displaying
+        // sort files alphabeticaly for easier browsing
         let mut sorted_files = self.files.clone();
         sorted_files.sort_by_key(|file| {
             file.original_path
@@ -464,6 +467,7 @@ impl Backup {
 
                 let mut entry = column![file_button];
 
+                //show file details when file is selected
                 if is_selected {
                     let details = column![
                         text(format!("Path: {}", file.original_path.display())).size(12),

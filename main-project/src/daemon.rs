@@ -29,14 +29,14 @@ impl DaemonManager {
         Self { pid_path: pid_file() }
     }
 
-    /// Check if daemon is running by checking both PID file and process
+    //checks if the demon is actually running by checking if the process exists
     pub fn is_running(&self) -> bool {
         if let Some(pid) = self.get_pid() {
-            // Check if process exists
+            //try to send  signal to check if process exists
             match nix_signal::kill(Pid::from_raw(pid), None) {
                 Ok(_) => true,
                 Err(_) => {
-                    // Process doesn't exist, remove stale PID file
+                    // clean up the pid file if process is gone
                     let _ = remove_file(&self.pid_path);
                     false
                 }
@@ -46,7 +46,6 @@ impl DaemonManager {
         }
     }
 
-    /// Get PID of running daemon
     fn get_pid(&self) -> Option<i32> {
         let mut file = File::open(&self.pid_path).ok()?;
         let mut contents = String::new();
@@ -54,10 +53,9 @@ impl DaemonManager {
         contents.trim().parse::<i32>().ok()
     }
 
-    /// Stop daemon gracefully
+    /// tries to stop the daemon normally, force kill if needed
     pub fn stop(&self) -> Result<(), String> {
         if !self.is_running() {
-            // Clean up stale PID file if it exists
             let _ = remove_file(&self.pid_path);
             return Err("Daemon is not running".to_string());
         }
@@ -66,11 +64,10 @@ impl DaemonManager {
         
         println!("Sending SIGTERM to PID {}...", pid);
         
-        // Send SIGTERM
         nix_signal::kill(Pid::from_raw(pid), nix_signal::Signal::SIGTERM)
             .map_err(|e| format!("Failed to send SIGTERM: {}", e))?;
 
-        // Wait up to 10 seconds for graceful shutdown
+        //wait up to 10 seconds for a normal shutdown
         for i in 0..20 {
             thread::sleep(Duration::from_millis(500));
             if !self.is_running() {
@@ -83,7 +80,7 @@ impl DaemonManager {
             }
         }
 
-        // If still running, try SIGKILL
+        // if it's still alive, force kills the daemon
         println!("Daemon didn't stop gracefully, sending SIGKILL...");
         if self.is_running() {
             nix_signal::kill(Pid::from_raw(pid), nix_signal::Signal::SIGKILL)
@@ -99,7 +96,6 @@ impl DaemonManager {
         Ok(())
     }
 
-    /// Force kill
     pub fn kill(&self) -> Result<(), String> {
         if let Some(pid) = self.get_pid() {
             nix_signal::kill(Pid::from_raw(pid), nix_signal::Signal::SIGKILL)
@@ -112,11 +108,10 @@ impl DaemonManager {
         }
     }
 
-    /// Status
     pub fn status(&self) -> String {
         if let Some(pid) = self.get_pid() {
             if self.is_running() {
-                // Load settings to show interval
+                // show the backup frequency
                 if let Ok(settings) = crate::backup::BackupSettings::load_from_file() {
                     if settings.auto_backup_enabled {
                         format!("✓ Daemon is running (PID: {}, Interval: {} min)", 
@@ -135,17 +130,15 @@ impl DaemonManager {
         }
     }
 
-    /// Start daemon
+    /// starts the daemon process
     pub fn start(&self) -> Result<(), String> {
-        // Clean up any stale PID files first
         if self.is_running() {
             return Err("Daemon is already running. Use 'restart' to restart it.".to_string());
         } else {
-            // Remove stale PID file
             let _ = remove_file(&self.pid_path);
         }
 
-        // Check if auto-backup is enabled
+        // make sure auto backup is actually turne on before starting
         let settings = crate::backup::BackupSettings::load_from_file()
             .unwrap_or_default();
         
@@ -153,7 +146,6 @@ impl DaemonManager {
             return Err("Auto-backup is disabled in settings. Please enable it first.".to_string());
         }
 
-        // Check if there are files to backup
         let metadata = crate::backup::BackupMetadata::load_from_file()
             .map_err(|e| format!("Failed to load metadata: {}", e))?;
         
@@ -181,7 +173,7 @@ impl DaemonManager {
 
         match daemon.start() {
             Ok(_) => {
-                // This code runs in the daemon process
+                // this is where the daemon actually runs
                 run_daemon(&self.pid_path);
                 Ok(())
             }
@@ -191,7 +183,6 @@ impl DaemonManager {
         }
     }
 
-    /// Restart
     pub fn restart(&self) -> Result<(), String> {
         println!("Restarting daemon...");
         
@@ -211,7 +202,7 @@ fn run_daemon(pid_path: &PathBuf) {
     let r = running.clone();
     let r2 = running.clone();
     
-    // Register signal handlers
+    //link signal handlers so we can shutdown cleanly
     let _ = flag::register(SIGINT, r);
     let _ = flag::register(SIGTERM, r2);
 
@@ -221,39 +212,38 @@ fn run_daemon(pid_path: &PathBuf) {
         .open(log_file())
         .expect("Failed to open log file");
 
-    writeln!(log, "\n{:═<60}", "").unwrap();  // using '═' for visual line, or just '='
+    writeln!(log, "\n{:═<60}", "").unwrap();
     writeln!(log, "[{}] Daemon started with PID {}",
         chrono::Local::now().format("%Y-%m-%d %H:%M:%S"),
         std::process::id()).unwrap();
     writeln!(log, "{:=<60}\n", "").unwrap();
     log.flush().unwrap();
 
-    // Main daemon loop
+    //keep running backups until told to stop
     while running.load(Ordering::Relaxed) {
-    let settings = crate::backup::BackupSettings::load_from_file()
-        .unwrap_or_default();
+        let settings = crate::backup::BackupSettings::load_from_file()
+            .unwrap_or_default();
 
-    if settings.auto_backup_enabled {
-        writeln!(log, "[{}] Running auto-backup...", chrono::Local::now()).unwrap();
-        let _ = crate::backup::auto_backup();
-    } else {
-        writeln!(log, "[{}] Auto-backup disabled; sleeping...", chrono::Local::now()).unwrap();
+        if settings.auto_backup_enabled {
+            writeln!(log, "[{}] Running auto-backup...", chrono::Local::now()).unwrap();
+            let _ = crate::backup::auto_backup();
+        } else {
+            writeln!(log, "[{}] Auto-backup disabled; sleeping...", chrono::Local::now()).unwrap();
+        }
+
+        log.flush().unwrap();
+
+        for _ in 0..(settings.interval_minutes * 60) {
+            if !running.load(Ordering::Relaxed) { break; }
+            thread::sleep(Duration::from_secs(1));
+        }
     }
-
-    log.flush().unwrap();
-
-    // sleep loop
-    for _ in 0..(settings.interval_minutes * 60) {
-        if !running.load(Ordering::Relaxed) { break; }
-        thread::sleep(Duration::from_secs(1));
-    }
-}
 
     writeln!(log, "\n[{}] Daemon shutting down gracefully...",
         chrono::Local::now().format("%Y-%m-%d %H:%M:%S")).unwrap();
     log.flush().unwrap();
 
-    // Clean up PID file
+    //remove the pid file when we exit program
     match remove_file(pid_path) {
         Ok(_) => {
             writeln!(log, "[{}] PID file removed successfully",

@@ -11,6 +11,7 @@ use std::sync::{Arc, Mutex};
 use chrono::Local;
 use std::collections::HashMap;
 
+//calculates sha256 hash of a file for checking changes in files
 fn calculate_hash(path: &Path) -> Option<String> {
     let mut file = File::open(path).ok()?;
     let mut hasher = Sha256::new();
@@ -59,7 +60,7 @@ impl Default for BackupSettings {
     fn default() -> Self {
         Self {
             auto_backup_enabled: false,
-            interval_minutes: 60, // Default: 1 hour
+            interval_minutes: 60,
             dark_mode: false,
         }
     }
@@ -92,11 +93,9 @@ impl BackupMetadata {
             let mut contents = String::new();
             f.read_to_string(&mut contents)?;
             
-            // Try to parse as Vec first (old format)
             if let Ok(vec) = serde_json::from_str::<Vec<FileInfo>>(&contents) {
                 let mut files = HashMap::new();
                 for mut file_info in vec {
-                    // Calculate hash if it's empty
                     if file_info.hash.is_empty() {
                         if let Some(hash) = calculate_hash(&file_info.original_path) {
                             file_info.hash = hash;
@@ -107,7 +106,6 @@ impl BackupMetadata {
                 return Ok(BackupMetadata { files });
             }
             
-            // Try new format (HashMap)
             Ok(serde_json::from_str(&contents).unwrap_or_default())
         } else {
             Ok(BackupMetadata::default())
@@ -149,12 +147,12 @@ pub fn select_folder() -> Option<PathBuf> {
     }
 }
 
+//does the initial backup of a selected folder
 pub fn backup(selected_folder: &Path) -> std::io::Result<()> {
     let home = home_dir().expect("Could not determine home directory");
     let backup_folder = home.join("Backup");
     fs::create_dir_all(&backup_folder)?;
 
-    // Load existing metadata
     let mut metadata = BackupMetadata::load_from_file().unwrap_or_default();
 
     for entry in WalkDir::new(selected_folder).into_iter().filter_map(|e| e.ok()) {
@@ -175,9 +173,10 @@ pub fn backup(selected_folder: &Path) -> std::io::Result<()> {
             let new_hash = calculate_hash(path);
             let existing = metadata.files.get(&path.to_path_buf());
 
+            //only copy if file changed or don't exist in backup
             let should_copy = match existing {
                 Some(old) if !old.hash.is_empty() => Some(&old.hash) != new_hash.as_ref(),
-                _ => true, // Copy if no existing entry or hash is empty
+                _ => true,
             };
 
             if should_copy {
@@ -192,7 +191,7 @@ pub fn backup(selected_folder: &Path) -> std::io::Result<()> {
                 .map(|e| e.to_string_lossy().to_string())
                 .unwrap_or_else(|| "unknown".to_string());
 
-            // Update or insert metadata
+            // update metadata with  anew hash
             if let Some(hash) = new_hash {
                 let file_info = FileInfo {
                     original_path: path.to_path_buf(),
@@ -205,13 +204,13 @@ pub fn backup(selected_folder: &Path) -> std::io::Result<()> {
         }
     }
 
-    // Save metadata
     metadata.save_to_file()?;
     println!("Metadata updated successfully.");
 
     Ok(())
 }
 
+//backup files that have changes
 pub fn backup_now(metadata_arc: Arc<Mutex<BackupMetadata>>) -> Result<usize, String> {
     let mut backed_up_count = 0;
     
@@ -224,7 +223,6 @@ pub fn backup_now(metadata_arc: Arc<Mutex<BackupMetadata>>) -> Result<usize, Str
             continue;
         }
 
-        // Ensure parent directory exists
         if let Some(parent) = info.backup_path.parent() {
             if let Err(e) = fs::create_dir_all(parent) {
                 println!("Failed to create backup directory: {}", e);
@@ -234,7 +232,7 @@ pub fn backup_now(metadata_arc: Arc<Mutex<BackupMetadata>>) -> Result<usize, Str
 
         match calculate_hash(&info.original_path) {
             Some(current_hash) => {
-                // If hash is empty, always backup
+                // if hash is empty or different, we need to backup
                 let needs_backup = info.hash.is_empty() || current_hash != info.hash;
                 
                 if needs_backup {
@@ -257,6 +255,7 @@ pub fn backup_now(metadata_arc: Arc<Mutex<BackupMetadata>>) -> Result<usize, Str
         }
     }
 
+    // only save if we actually backed up something
     if backed_up_count > 0 {
         if let Err(e) = metadata.save_to_file() {
             println!("Failed to save updated metadata: {}", e);
@@ -268,7 +267,7 @@ pub fn backup_now(metadata_arc: Arc<Mutex<BackupMetadata>>) -> Result<usize, Str
     Ok(backed_up_count)
 }
 
-// This function is called by the daemon
+// called by daemon to run scheduled backups
 pub fn auto_backup() -> std::io::Result<()> {
     let metadata = BackupMetadata::load_from_file()?;
     let metadata_arc = Arc::new(Mutex::new(metadata));
